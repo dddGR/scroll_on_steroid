@@ -1,0 +1,96 @@
+menu "Scroll-On-Steroid Configuration"
+
+    config DEVICE_NAME
+        string "Device name"
+        default "Scroll On Steroid" if IDF_TARGET_ESP32S3
+        default "Scroll On Steroid lite" if IDF_TARGET_ESP32C3
+    
+    config USE_MENU_CONFIG
+        bool "Use menuconfig to set parameters"
+        default y
+
+    menu "Magnetic Sensor config"
+    depends on USE_MENU_CONFIG
+
+        config SENSOR_POWER_ENABLE_PIN
+            int "GPIO for power"
+            default 12 if IDF_TARGET_ESP32S3
+            default 0 if IDF_TARGET_ESP32C3
+
+        config SENSOR_I2C_SDA_PIN
+            int "GPIO for SDA"
+            default 10 if IDF_TARGET_ESP32S3
+            default 8 if IDF_TARGET_ESP32C3
+
+        config SENSOR_I2C_SCL_PIN
+            int "GPIO for SCL"
+            default 11 if IDF_TARGET_ESP32S3
+            default 7 if IDF_TARGET_ESP32C3
+
+        config SENSOR_NOISE_CUTOFF_THRESHOLD
+            int "Cutoff threshold to prevent noise"
+            default 4
+            help
+                AS5600 output 12-bit angle value, the noise value is about 0-2
+    endmenu
+
+    menu "Touch Button config"
+    depends on USE_MENU_CONFIG
+
+        config USE_TOUCH_BUTTON
+            bool "Use touch button"
+            default y
+        
+        config USE_TOUCH_BUILTIN
+            bool "Use touch sensor built-in"
+            default y
+            depends on SOC_TOUCH_SENSOR_SUPPORTED && USE_TOUCH_BUTTON
+            help
+                This option enable touch button using touch builtin esp32-s3 chip.
+    
+        config TOUCH_PAD
+            int "Touch GPIO pin"
+            depends on USE_TOUCH_BUILTIN
+            default 7
+            range 1 14 if IDF_TARGET_ESP32S3
+            help
+                This is touch pad number, on esp32-s3 this is equal.
+                Checking technical reference manual chap 6.13.
+
+        config TOUCH_SENSOR_GPIO_PIN
+            int "GPIO pin Touch sensor connected to"
+            depends on !USE_TOUCH_BUILTIN
+            default 6
+
+    endmenu
+
+    menu "Sleep and Wakeup config"
+    depends on USE_MENU_CONFIG
+        
+        config IDLE_TIME_BEFORE_SLEEP
+            int "Time in idle before enter sleep (minutes)"
+            default 10
+        
+        config TOUCH_TO_WAKEUP
+            bool "Enable touch to wakeup"
+            depends on USE_TOUCH_BUILTIN
+            default y
+        
+        config SHAKE_TO_WAKEUP
+            bool "Enable shake to wakeup"
+            depends on SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+            default y
+            help
+                This option enable wakeup device when shake detected
+        
+        config GPIO_WAKEUP_PIN
+            int "Enable wakeup from GPIO"
+            depends on SHAKE_TO_WAKEUP
+            default 5
+            range 0 7 if IDF_TARGET_ESP32C6
+            range 0 6 if IDF_TARGET_ESP32C61 || IDF_TARGET_ESP32C5
+            range 0 15 if IDF_TARGET_ESP32P4
+            range 0 5
+    endmenu
+
+endmenu

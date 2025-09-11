@@ -1,0 +1,44 @@
+menu "HID bluedroid Configuration"
+
+    choice HID_DEV_AUTHENTICATION_METHOD
+        prompt "Authentication method when connect to device"
+        depends on BT_BLE_ENABLED
+        default HID_AUTH_CAP_IO
+        help
+            Security require when try to connect to device
+            - CAP_OUT: you have to enter the key on the host
+            - CAP_IN: you have to enter the key on the device
+            - CAP_IO: you have to agree that key matches on both
+            - CAP_NONE: authentication not require, insecure
+        
+        config HID_AUTH_CAP_OUT
+            select DEVICE_AUTHENTICATION_METHOD
+            bool "ENTER KEY ON HOST"
+
+        # config HID_AUTH_CAP_IN
+        #     select DEVICE_AUTHENTICATION_METHOD
+        #     bool "ENTER KEY ON DEVICE"
+
+        config HID_AUTH_CAP_IO
+            select DEVICE_AUTHENTICATION_METHOD
+            bool "AGREE KEY MATCHES ON BOTH"
+
+        config HID_AUTH_CAP_NONE
+            select DEVICE_AUTHENTICATION_METHOD
+            bool "AUTHENTICATION NOT REQUIRE"
+    endchoice
+
+    config HID_DEV_AUTHENTICATION_METHOD
+        int
+        default 0 if HID_AUTH_CAP_OUT
+        default 1 if HID_AUTH_CAP_IO
+        default 2 if HID_AUTH_CAP_IN
+        default 3 if HID_AUTH_CAP_NONE
+    
+    config HID_AUTHENTICATION_KEY
+        int "PASSKEY for connect to device (4-6 number)"
+        depends on HID_AUTH_CAP_OUT
+        default 1234
+        range 0000 999999
+    
+endmenu
