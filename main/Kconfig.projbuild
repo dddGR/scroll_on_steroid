@@ -4,7 +4,7 @@ menu "Scroll-On-Steroid Configuration"
         string "Device name"
         default "Scroll On Steroid" if IDF_TARGET_ESP32S3
         default "Scroll On Steroid lite" if IDF_TARGET_ESP32C3
-    
+
     config USE_MENU_CONFIG
         bool "Use menuconfig to set parameters"
         default y
@@ -12,29 +12,29 @@ menu "Scroll-On-Steroid Configuration"
     menu "Magnetic Sensor config"
     depends on USE_MENU_CONFIG
 
-        config SENSOR_POWER_ENABLE_PIN
+        config PIN_SENSOR_POWER
             int "GPIO for power"
             default 12 if IDF_TARGET_ESP32S3
             default 0 if IDF_TARGET_ESP32C3
 
-        config SENSOR_I2C_SDA_PIN
+        config PIN_SENSOR_SDA
             int "GPIO for SDA"
             default 10 if IDF_TARGET_ESP32S3
             default 8 if IDF_TARGET_ESP32C3
 
-        config SENSOR_I2C_SCL_PIN
+        config PIN_SENSOR_SCL
             int "GPIO for SCL"
             default 11 if IDF_TARGET_ESP32S3
             default 7 if IDF_TARGET_ESP32C3
 
-        config SENSOR_NOISE_CUTOFF_THRESHOLD
+        config SENSOR_NOISE_THRESHOLD
             int "Cutoff threshold to prevent noise"
             default 4
             help
                 AS5600 output 12-bit angle value, the noise value is about 0-2
     endmenu
 
-    menu "Touch Button config"
+    menu "Touch/Button config"
     depends on USE_MENU_CONFIG
 
         config USE_TOUCH_BUTTON
@@ -48,7 +48,7 @@ menu "Scroll-On-Steroid Configuration"
             help
                 This option enable touch button using touch builtin esp32-s3 chip.
     
-        config TOUCH_PAD
+        config TOUCH_PAD_ID
             int "Touch GPIO pin"
             depends on USE_TOUCH_BUILTIN
             default 7
@@ -57,7 +57,7 @@ menu "Scroll-On-Steroid Configuration"
                 This is touch pad number, on esp32-s3 this is equal.
                 Checking technical reference manual chap 6.13.
 
-        config TOUCH_SENSOR_GPIO_PIN
+        config PIN_TOUCH_SENSOR
             int "GPIO pin Touch sensor connected to"
             depends on !USE_TOUCH_BUILTIN
             default 6
@@ -83,7 +83,7 @@ menu "Scroll-On-Steroid Configuration"
             help
                 This option enable wakeup device when shake detected
         
-        config GPIO_WAKEUP_PIN
+        config PIN_WAKEUP
             int "Enable wakeup from GPIO"
             depends on SHAKE_TO_WAKEUP
             default 5

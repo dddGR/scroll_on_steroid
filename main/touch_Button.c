@@ -1,14 +1,15 @@
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <inttypes.h>
-#include <esp_check.h>
-#include <driver/gpio.h>
+#include "esp_check.h"
+#include "driver/gpio.h"
 
 #include "touch_Button.h"
 
-static const char *TAG = "TOUCH_BUTTON";
-static const uint32_t time_wait = 200UL;
-static const uint32_t time_wait_for_input = 2000UL;
+static const char *TAG = "[TOUCH]";
+
+#define TIME_WAIT           (200UL)     /* in milliseconds */
+#define TIME_WAIT_FOR_INPUT (2000UL)    /* in milliseconds */
 
 ButtonPressState_t getButtonPressState(EventGroupHandle_t xEventGroup, TaskHandle_t xTask)
 {
@@ -17,34 +18,34 @@ ButtonPressState_t getButtonPressState(EventGroupHandle_t xEventGroup, TaskHandl
 
     ESP_LOGI(TAG, "%s() waiting for input...", __func__);
 
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait_for_input));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT_FOR_INPUT));
     if (~cur_bits & BUTTON_PRESSED)
     {
         ESP_LOGI(TAG, "%s() no input, exit", __func__);
         goto end;
     }
 
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_RELEASED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_RELEASED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT));
     if (~cur_bits & BUTTON_RELEASED) // not released, pressed and hold
         goto end;
 
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT));
     if (~cur_bits & BUTTON_PRESSED) // not pressed, -> not button input
         goto end;
     
     vTaskSuspend(xTask);
     
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_RELEASED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_RELEASED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT));
     if (cur_bits & BUTTON_RELEASED) // released, double press
         button_state = B_PRESS_2;
     else
         goto end;
 
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT));
     if (~cur_bits & BUTTON_PRESSED) // not pressed again -> just double press
         goto end;
     
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_RELEASED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_RELEASED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT));
     if (cur_bits & BUTTON_RELEASED) // released, triple press
         button_state = B_PRESS_3;
     else // pressed again, but not released -> false press -> ignore
@@ -53,7 +54,7 @@ ButtonPressState_t getButtonPressState(EventGroupHandle_t xEventGroup, TaskHandl
         goto end;
     }
 
-    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(time_wait));
+    cur_bits = xEventGroupWaitBits(xEventGroup, BUTTON_PRESSED, pdFALSE, pdFALSE, pdMS_TO_TICKS(TIME_WAIT));
     if (cur_bits & BUTTON_PRESSED)
     {
         ESP_LOGI(TAG, "%s() too many press, ignore", __func__);

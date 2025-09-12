@@ -3,41 +3,46 @@
 
 #include <stdint.h>
 
-#ifndef MAX
-#define MAX(a,b)	((a) > (b) ? (a) : (b))
-#endif
+/**  SOME BASIC MACROS TO MAKE LIFE EASIER */
 
 #ifndef MIN
-#define MIN(a,b)	((a) < (b) ? (a) : (b))
+    #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-/* For button touch state */
-typedef enum {
-    B_PRESS_NONE,
-    B_PRESS_1,
-    B_PRESS_2,
-    B_PRESS_3,
-    B_PRESS_HOLD = UINT8_MAX
-} ButtonPressState_t;
+#ifndef MAX
+    #define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
 
-/* For scroll speed division */
-typedef enum {
-    SPEED_HIGH = 1,
-    SPEED_MEDIUM,
-    SPEED_LOW = 4
-} scrollSpeedDiv;
+#ifndef ABS
+    #define ABS(x) (((x) < 0) ? -(x) : (x))
+#endif
 
-/* For scroll direction */
-typedef enum {
-    SCROLL_VERTICAL,
-    SCROLL_HORIZONTAL
-} scrollDirection;
+#ifndef SQRT
+    #define SQRT(x) ((x) * (x))
+#endif
 
-#define DEVICE_ACTIVE       BIT(0)
-#define DEVICE_IDLE         BIT(1)
-#define BUTTON_PRESSED      BIT(2)
-#define BUTTON_RELEASED     BIT(3)
-#define BLE_CONNECTED       BIT(8)
-#define BLE_DISCONNECTED    BIT(9)
+/* Map value x from range [a] to range [b] */
+#define MAP(x, a_min, a_max, b_min, b_max)\
+    (((x - a_min) * (b_max - b_min)) / (a_max - a_min) + b_min)
 
-#endif // _USER_TYPES_H_
+#ifndef POW2
+    #define POW2(x) ((uint16_t)1u << (x))
+#endif
+
+#ifndef POW2_U32
+    #define POW2_U32(x) ((uint32_t)1ul << (x))
+#endif
+
+#ifndef POW2_U64
+    #define POW2_U64(x) ((uint64_t)1ull << (x))
+#endif
+
+#ifndef HIGH
+    #define HIGH    (1)
+#endif
+#ifndef LOW
+    #define LOW     (0)
+#endif
+
+
+#endif
