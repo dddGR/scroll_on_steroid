@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a scroll device that emulates mouse scrolling with enhanced smoothness, utilizing a resolution multiplier. It connects via Bluetooth Low Energy (BLE) and incorporates a touch sensor for user interaction. Users can easily adjust scrolling speed and direction (horizontal/vertical) through a touch button interface. The device is built on the ESP32-C3/S3 microcontroller and an AS5600 magnetic encoder. This project is developed using the ESP-IDF framework and is entirely written in C.
+This project is a scroll device that emulates mouse scrolling with enhanced smoothness, utilizing resolution multiplier. It connects via Bluetooth Low Energy (BLE) and incorporates a touch sensor for user interaction. Users can easily adjust scrolling speed and direction (horizontal/vertical) through a touch button interface. The device is built on the ESP32-C3/S3 microcontroller and an AS5600 magnetic encoder. This project is developed using the ESP-IDF framework and is entirely written in C.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ User can change scrolling speed or direction via touch interface.
 - Magnetic encoder: AS5600
 - Touch sensor module: TP223 *(for C3 only)*
 - 6809-2RS bearing
-- 10345 lipo battery
+- 10345 2000mAh lipo battery
 - LX-LBC3 lipo charging module
 - SW-200D vibration switch *(for C3 only)*
 - MSK12C02 switch *(*optinal)*
