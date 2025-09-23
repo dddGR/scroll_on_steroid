@@ -14,99 +14,58 @@
 #include "HID_bluedroid.h"
 #include "esp_as5600.h"
 #include "touch_Button.h"
+#include "user_HID_Descriptor.h"
 
+/* This two variables are store in RTC memory to reuse when device is go to sleep and reboot */
 RTC_DATA_ATTR static volatile ScrollSpeedDiv_t g_scroll_div = SPEED_LOW;
 RTC_DATA_ATTR static volatile ScrollDirection_t g_scroll_dir = SCROLL_VERTICAL;
 
 /** AS5600 */
-static as5600_handle_t hdl_encoder;
+// static as5600_handle_t hdl_encoder;
 
 /** BLE MOUSE */
-extern esp_hid_raw_report_map_t ble_report_maps[];
-static esp_hidd_dev_t *p_hidDevice;
+// extern esp_hid_raw_report_map_t ble_report_maps[];
+// static esp_hidd_dev_t *p_hidDevice;
 
 /** MAIN */
 static TaskHandle_t hdl_scroll_task;
+/* this is mainly for printing log, can be removed if not needed */
+/* ------------------------------- */
+static TaskHandle_t hdl_button_task;
+#if !CONFIG_USE_TOUCH_BUILTIN
+static TaskHandle_t hdl_touch_task;
+#endif
+/* ------------------------------- */
+
 static EventGroupHandle_t g_xEventGroup;
-
-
-static esp_err_t init_MouseScroll(const char *_TAG)
-{
-    ESP_LOGI(_TAG, "Initializing BLE.....");
-    xEventGroupSetBits(g_xEventGroup, BLE_DISCONNECTED);
-    
-    const esp_hid_device_config_t ble_hid_config = {
-        .vendor_id          = 0x16C0,
-        .product_id         = 0x05DF,
-        .version            = 0x0100,
-        .device_name        = DEVICE_NAME,
-        .manufacturer_name  = DEVICE_MANUFACTURER,
-        .serial_number      = DEVICE_SERIAL,
-        .report_maps        = ble_report_maps,
-        .report_maps_len    = 1
-    };
-
-    ESP_ERROR_CHECK_WITHOUT_ABORT(hidDevInit(&p_hidDevice, &ble_hid_config));
-
-    ESP_LOGI(_TAG, "Initializing Magnetic Sensor.....");
-    gpio_config_t pin_config = {
-        .pin_bit_mask = BIT(CONFIG_PIN_SENSOR_POWER),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    ESP_RETURN_ON_ERROR(gpio_config(&pin_config), _TAG, "failed to configure power pin..");
-    ESP_RETURN_ON_ERROR(gpio_set_level(CONFIG_PIN_SENSOR_POWER, 1), _TAG, "failed to turn on power..");
-
-    vTaskDelay(pdMS_TO_TICKS(50));
-
-    i2c_config_t i2c_config = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = CONFIG_PIN_SENSOR_SDA,
-        .scl_io_num = CONFIG_PIN_SENSOR_SCL,
-        .sda_pullup_en = GPIO_PULLUP_DISABLE,
-        .scl_pullup_en = GPIO_PULLUP_DISABLE,
-        .master.clk_speed = 400000,
-    };
-
-    hdl_encoder.i2c_num = I2C_NUM_0;
-    hdl_encoder.i2c_config = i2c_config;
-    hdl_encoder.device_address = AS5600_DEFAULT_ADDRESS;
-
-    ESP_RETURN_ON_ERROR(as5600_init(&hdl_encoder), _TAG, "failed to init as5600");
-
-    return ESP_OK;
-}
-
 
 #if !CONFIG_USE_TOUCH_BUILTIN
 void task_TouchScan(void *pvParameter)
 {
-    const char *_TAG = "[TOUCH]";
+    const char *TAG = "[TOUCH]";
     /**
      * @brief The external touch is connected to a GPIO pin and functions as a button. 
      * This task is responsible for listening to the input in polling mode and 
-     * updating the event group bit accordingly. The "last_bits" variable is used 
+     * updating the event group bit accordingly. The "lastbits" variable is used 
      * to ensure that the bit changes only when necessary. 
      */
-    ESP_LOGI(_TAG, "Initializing Touch...");
-    ESP_ERROR_CHECK(init_TouchExternal(_TAG, CONFIG_PIN_TOUCH_SENSOR));
+    ESP_LOGI(TAG, "Initializing Touch...");
+    ESP_ERROR_CHECK(init_TouchExternal(TAG, CONFIG_PIN_TOUCH_SENSOR));
 
     EventGroupHandle_t xEventGroup = (EventGroupHandle_t)pvParameter;
-    EventBits_t last_bits = xEventGroupGetBits(xEventGroup);
-    EventBits_t curr_bits;
+    EventBits_t lastbits = xEventGroupGetBits(xEventGroup);
+    EventBits_t currbits;
     TickType_t _xLastWakeTime = xTaskGetTickCount();
 
     for (;;)
     {
-        curr_bits = (gpio_get_level(CONFIG_PIN_TOUCH_SENSOR)) ? BUTTON_PRESSED : BUTTON_RELEASED;
+        currbits = (gpio_get_level(CONFIG_PIN_TOUCH_SENSOR)) ? BUTTON_PRESSED : BUTTON_RELEASED;
 
-        if (curr_bits & last_bits)
+        if (currbits & lastbits)
             goto end_loop;
 
         xEventGroupClearBits(xEventGroup, BUTTON_PRESSED | BUTTON_RELEASED);
-        last_bits = xEventGroupSetBits(xEventGroup, curr_bits);
+        lastbits = xEventGroupSetBits(xEventGroup, currbits);
 
     end_loop:
         /* ~100hz */
@@ -121,7 +80,7 @@ void task_TouchScan(void *pvParameter)
 #if CONFIG_USE_TOUCH_BUTTON
 static void task_Button(void *pvParameter)
 {
-    const char *_TAG = "[BUTTON]";
+    const char *TAG = "[BUTTON]";
 
     for (;;)
     {
@@ -145,11 +104,11 @@ static void task_Button(void *pvParameter)
         default: break;
         case B_PRESS_2:
             g_scroll_dir = (g_scroll_dir == SCROLL_HORIZONTAL) ? SCROLL_VERTICAL : SCROLL_HORIZONTAL;
-            ESP_LOGI(_TAG, "[double pressed] - Change scroll direction.");
+            ESP_LOGI(TAG, "[double pressed] - Change scroll direction.");
             break;
         case B_PRESS_3:
             g_scroll_div = (g_scroll_div == SPEED_HIGH) ? SPEED_LOW : SPEED_HIGH;
-            ESP_LOGI(_TAG, "[triple pressed] - Change scroll speed to %s", (g_scroll_div == 1) ? "HIGH" : "LOW");
+            ESP_LOGI(TAG, "[triple pressed] - Change scroll speed to %s", (g_scroll_div == 1) ? "HIGH" : "LOW");
             break;
         case B_PRESS_NONE:
             xEventGroupWaitBits(g_xEventGroup, DEVICE_ACTIVE, pdFALSE, pdTRUE, portMAX_DELAY);
@@ -160,14 +119,93 @@ static void task_Button(void *pvParameter)
 }
 #endif // CONFIG_USE_TOUCH_BUTTON
 
+esp_err_t init_Hardware(const char *TAG, as5600_handle_t *hdl_encoder, esp_hidd_dev_t **p_hid_dev)
+{
+    ESP_LOGI(TAG, "Initializing BLE.....");
+    xEventGroupSetBits(g_xEventGroup, BLE_DISCONNECTED);
+
+    esp_hid_raw_report_map_t ble_report_maps[] = {
+        {
+            .data = scrollDescriptor_hiRes,
+            .len = sizeof(scrollDescriptor_hiRes)
+        }
+    };
+    
+    const esp_hid_device_config_t ble_hid_config = {
+        .vendor_id          = 0x16C0,
+        .product_id         = 0x05DF,
+        .version            = 0x0100,
+        .device_name        = DEVICE_NAME,
+        .manufacturer_name  = DEVICE_MANUFACTURER,
+        .serial_number      = DEVICE_SERIAL,
+        .report_maps        = ble_report_maps,
+        .report_maps_len    = 1
+    };
+
+    ESP_ERROR_CHECK_WITHOUT_ABORT(hidDevInit(p_hid_dev, &ble_hid_config));
+
+    ESP_LOGI(TAG, "Initializing Magnetic Sensor.....");
+    gpio_config_t pin_config = {
+        .pin_bit_mask = BIT(CONFIG_PIN_SENSOR_POWER),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    ESP_RETURN_ON_ERROR(gpio_config(&pin_config), TAG, "failed to configure power pin..");
+    ESP_RETURN_ON_ERROR(gpio_set_level(CONFIG_PIN_SENSOR_POWER, 1), TAG, "failed to turn on power..");
+
+    vTaskDelay(pdMS_TO_TICKS(50));
+
+    i2c_config_t i2c_config = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = CONFIG_PIN_SENSOR_SDA,
+        .scl_io_num = CONFIG_PIN_SENSOR_SCL,
+        .sda_pullup_en = GPIO_PULLUP_DISABLE,
+        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .master.clk_speed = 400000UL,
+    };
+
+    hdl_encoder->i2c_num = I2C_NUM_0;
+    hdl_encoder->i2c_config = i2c_config;
+    hdl_encoder->device_address = AS5600_DEFAULT_ADDRESS;
+
+    ESP_RETURN_ON_ERROR(as5600_init(hdl_encoder), TAG, "failed to init as5600");
+
+    /**
+     * @brief If the SoC has a built-in touch sensor, it will be initialized. 
+     * Otherwise, a task will be created to listen for input from the external 
+     * touch sensor. The button task will utilize data from the touch sensor 
+     * to execute the corresponding button actions.  
+     */
+#if CONFIG_USE_TOUCH_BUILTIN
+    ESP_LOGI(TAG, "Initializing Internal Touch...");
+    ESP_ERROR_CHECK(init_TouchBuitin(TAG, CONFIG_TOUCH_PAD_ID, g_xEventGroup));
+#else
+    xTaskCreatePinnedToCore(&task_TouchScan, "task_TouchScan", 2560,
+                            (void *)g_xEventGroup, 6, &hdl_touch_task, (BaseType_t)APP_CORE_ID);
+    vTaskDelay(pdMS_TO_TICKS(100));
+#endif
+#if CONFIG_USE_TOUCH_BUTTON
+    xTaskCreatePinnedToCore(&task_Button, "task_Button", 3072,
+                            NULL, 5, &hdl_button_task, (BaseType_t)APP_CORE_ID);
+#endif // CONFIG_USE_TOUCH_BUTTON
+
+    return ESP_OK;
+}
+
 static void task_MouseScroll(void *pvParameter)
 {
-    const char *_TAG = "[SCROLL]";
+    const char *TAG = "[SCROLL]";
 
     uint8_t counter_to_idle = 0;
     uint16_t prev_angle = 0;
     uint16_t curr_angle = 0;
-    EventBits_t _bits;
+    EventBits_t bits;
+    as5600_handle_t hdl_encoder;
+    esp_hidd_dev_t *p_hid_device;
+    ESP_ERROR_CHECK(init_Hardware(TAG, &hdl_encoder, &p_hid_device));
+
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
     xEventGroupSetBits(g_xEventGroup, DEVICE_IDLE
@@ -191,10 +229,10 @@ static void task_MouseScroll(void *pvParameter)
           * The remainder of the loop involves reading the angle, calculating 
           * the delta, and sending data to the HID device.
           */
-        _bits = xEventGroupWaitBits(g_xEventGroup, DEVICE_ACTIVE | BUTTON_PRESSED, pdFALSE, pdFALSE, portMAX_DELAY);
-        if (_bits & DEVICE_IDLE)
+        bits = xEventGroupWaitBits(g_xEventGroup, DEVICE_ACTIVE | BUTTON_PRESSED, pdFALSE, pdFALSE, portMAX_DELAY);
+        if (bits & DEVICE_IDLE)
         {
-            ESP_LOGI(_TAG, "Active state...");
+            ESP_LOGI(TAG, "Active state...");
             as5600_get_raw_angle(&hdl_encoder, &curr_angle);
             prev_angle = curr_angle;
             xEventGroupClearBits(g_xEventGroup, DEVICE_IDLE);
@@ -204,8 +242,8 @@ static void task_MouseScroll(void *pvParameter)
         as5600_get_raw_angle(&hdl_encoder, &curr_angle);
         const int16_t delta_angle = (curr_angle - prev_angle/*  - curr_angle */);
 
-        ESP_LOGD(_TAG, "Current angle: %d", curr_angle);
-        ESP_LOGD(_TAG, "Angle delta: %d", delta_angle);
+        ESP_LOGD(TAG, "Current angle: %d", curr_angle);
+        ESP_LOGD(TAG, "Angle delta: %d", delta_angle);
 
         /**
          * @brief When the delta is smaller than the set threshold, it is assumed that 
@@ -223,11 +261,11 @@ static void task_MouseScroll(void *pvParameter)
          */
         if (abs(delta_angle) < CONFIG_SENSOR_NOISE_THRESHOLD)
         {
-            _bits = xEventGroupWaitBits(g_xEventGroup, BUTTON_PRESSED, pdFALSE, pdTRUE, 0);
+            bits = xEventGroupWaitBits(g_xEventGroup, BUTTON_PRESSED, pdFALSE, pdTRUE, 0);
 
-            if (~_bits & BUTTON_PRESSED && ++counter_to_idle > 50 /* about 500ms with 100hz polling rate */)
+            if (~bits & BUTTON_PRESSED && ++counter_to_idle > 50 /* about 500ms with 100hz polling rate */)
             {
-                ESP_LOGI(_TAG, "Entering idle state...");
+                ESP_LOGI(TAG, "Entering idle state...");
                 xEventGroupClearBits(g_xEventGroup, DEVICE_ACTIVE);
                 xEventGroupSetBits(g_xEventGroup, DEVICE_IDLE);
                 counter_to_idle = 0;
@@ -244,10 +282,10 @@ static void task_MouseScroll(void *pvParameter)
             {
             default: break;
             case SCROLL_VERTICAL:
-                sendScroll(p_hidDevice, -scroll_val, 0);
+                sendScroll(p_hid_device, -scroll_val, 0);
                 break;
             case SCROLL_HORIZONTAL:
-                sendScroll(p_hidDevice, 0, scroll_val);
+                sendScroll(p_hid_device, 0, scroll_val);
                 break;
             }
         }
@@ -260,10 +298,9 @@ static void task_MouseScroll(void *pvParameter)
     }
 }
 
-
 /* BLE HID CALLBACK */
 /* -------------------------------------------------------------------- */
-void do_when_ble_hid_connect()
+void do_when_ble_hid_connect(void)
 {
     while (!hdl_scroll_task)
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -273,7 +310,7 @@ void do_when_ble_hid_connect()
     vTaskResume(hdl_scroll_task);
 }
 
-void do_when_ble_hid_disconnect()
+void do_when_ble_hid_disconnect(void)
 {
     if (!hdl_scroll_task)
         goto end;
@@ -284,16 +321,16 @@ end:
     xEventGroupSetBits(g_xEventGroup, BLE_DISCONNECTED);
 }
 
-void do_when_ble_hid_stop()
+void do_when_ble_hid_stop(void)
 {
-    // nothing for now
+    /* nothing for now */
 }
 /* -------------------------------------------------------------------- */
 
-static void esp_pre_sleep_config(const char *_TAG)
+static void esp_pre_sleep_config(const char *TAG)
 {
 #if CONFIG_TOUCH_TO_WAKEUP
-    ESP_ERROR_CHECK_WITHOUT_ABORT(regTouchWakeup(_TAG));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(regTouchWakeup(TAG));
 #endif
 
 #if CONFIG_SHAKE_TO_WAKEUP
@@ -317,52 +354,27 @@ static void esp_pre_sleep_config(const char *_TAG)
 /* MAIN */
 /* -------------------------------------------------------------------- */
 /* -------------------------------------------------------------------- */
-void app_main()
+void app_main(void)
 {
-    const char *M_TAG = "[MAIN]";
+    const char *MTAG = "[MAIN]";
 
 #if CONFIG_SHAKE_TO_WAKEUP
     ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_reset_pin(CONFIG_PIN_WAKEUP));
 #endif
-
     g_xEventGroup = xEventGroupCreate();
-    ESP_ERROR_CHECK(init_MouseScroll(M_TAG));
-
     /**
-     * @brief If the SoC has a built-in touch sensor, it will be initialized. 
-     * Otherwise, a task will be created to listen for input from the external 
-     * touch sensor. The button task will utilize data from the touch sensor 
-     * to execute the corresponding button actions. 
-     * 
-     * The {task_MouseScroll} is responsible for reading the encoder and sending 
-     * the scroll data to the HID device via the Bluetooth interface. This task 
-     * also determines the idle and active states of the device. 
+     * @brief The {task_MouseScroll} is responsible for reading the encoder and
+     * sending the scroll data to the HID device via the Bluetooth interface. This
+     * task also determines the idle and active states of the device. 
      */
-#if CONFIG_USE_TOUCH_BUTTON
-
-#if CONFIG_USE_TOUCH_BUILTIN
-    ESP_LOGI(M_TAG, "Initializing Internal Touch...");
-    ESP_ERROR_CHECK(init_TouchBuitin(M_TAG, CONFIG_TOUCH_PAD_ID, g_xEventGroup));
-#else
-    TaskHandle_t hdl_touch_task;
-    xTaskCreatePinnedToCore(&task_TouchScan, "task_TouchScan", 2560,
-                            (void *)g_xEventGroup, 6, &hdl_touch_task, (BaseType_t)APP_CORE_ID);
-    
-    vTaskDelay(pdMS_TO_TICKS(100));
-#endif
-
-    TaskHandle_t hdl_button_task;
-    xTaskCreatePinnedToCore(&task_Button, "task_Button", 3072,
-                            NULL, 5, &hdl_button_task, (BaseType_t)APP_CORE_ID);
-#endif // CONFIG_USE_TOUCH_BUTTON
-
     xTaskCreatePinnedToCore(&task_MouseScroll, "task_MouseScroll", 3584,
                             NULL, 5, &hdl_scroll_task, (BaseType_t)APP_CORE_ID);
 
-    vTaskDelay(pdMS_TO_TICKS(1000 * 5)); // wait 5 seconds for everything to be ready
+    /* wait 5 seconds for everything to be ready */
+    vTaskDelay(pdMS_TO_TICKS(1000 * 5));
 
     /** MAIN also control sleep function */
-    EventBits_t _bits;
+    EventBits_t bits;
     for (;;)
     {
 #if CONFIG_USE_TOUCH_BUTTON
@@ -377,60 +389,65 @@ void app_main()
          *    the idle state during this time, it will go to sleep; otherwise, the 
          *    loop will continue. 
          */
-        _bits = xEventGroupWaitBits(g_xEventGroup,
+        bits = xEventGroupWaitBits(g_xEventGroup,
                                     DEVICE_IDLE,
                                     pdFALSE,
                                     pdTRUE,
                                     portMAX_DELAY);
 
-        _bits = xEventGroupWaitBits(g_xEventGroup,
+        bits = xEventGroupWaitBits(g_xEventGroup,
                                     DEVICE_ACTIVE | BLE_DISCONNECTED,
                                     pdFALSE,
                                     pdFALSE,
                                     pdMS_TO_TICKS(1000 * 60 * CONFIG_IDLE_TIME_BEFORE_SLEEP));
         
-        if (_bits & DEVICE_ACTIVE)
+        if (bits & DEVICE_ACTIVE)
             continue;
 
-        if (_bits & BLE_DISCONNECTED)
+        if (bits & BLE_DISCONNECTED)
         {
-            ESP_LOGW(M_TAG, "BLE not connected, wait 30 seconds until go to sleep.");
-            _bits = xEventGroupWaitBits(g_xEventGroup,
+            ESP_LOGW(MTAG, "BLE not connected, wait 30 seconds until go to sleep.");
+            bits = xEventGroupWaitBits(g_xEventGroup,
                                         DEVICE_ACTIVE | BLE_CONNECTED,
                                         pdFALSE,
                                         pdFALSE,
                                         pdMS_TO_TICKS(1000 * 30));
 
-            if (_bits & BLE_CONNECTED || _bits & DEVICE_ACTIVE)
+            if (bits & BLE_CONNECTED || bits & DEVICE_ACTIVE)
                 continue;
         }
-#else /* Device is always active when touch is not used, so only time is going to sleep is when BLE is disconnected */
-        _bits = xEventGroupWaitBits(g_xEventGroup,
+#else
+        /**
+         * @note If a touch sensor is not used, the device is set to remain always active. 
+         * In this case, the only condition for determining when to go to sleep is 
+         * checking for BLE disconnection. This is maybe not the best strategy. 
+         */
+        bits = xEventGroupWaitBits(g_xEventGroup,
                                     BLE_DISCONNECTED,
                                     pdFALSE,
                                     pdTRUE,
                                     portMAX_DELAY);
         
-        ESP_LOGW(M_TAG, "BLE not connected, wait 30 seconds until go to sleep.");
-        _bits = xEventGroupWaitBits(g_xEventGroup,
+        ESP_LOGW(MTAG, "BLE not connected, wait 30 seconds until go to sleep.");
+        bits = xEventGroupWaitBits(g_xEventGroup,
                                     BLE_CONNECTED,
                                     pdFALSE,
                                     pdTRUE,
                                     pdMS_TO_TICKS(1000 * 30));
 
-        if (_bits & BLE_CONNECTED) continue;
+        if (bits & BLE_CONNECTED) continue;
 #endif
-        ESP_LOGW(M_TAG, "Entering sleep mode.....");
-        esp_pre_sleep_config(M_TAG);
+        ESP_LOGW(MTAG, "Entering sleep mode.....");
+        esp_pre_sleep_config(MTAG);
         
         /* Some log for testing */
-        ESP_LOGW(M_TAG, "high watermark %d",  uxTaskGetStackHighWaterMark(NULL));
-        ESP_LOGW("SCROLL", "high watermark %d",  uxTaskGetStackHighWaterMark(hdl_scroll_task));
+        ESP_LOGW(MTAG, "high watermark %d",  uxTaskGetStackHighWaterMark(NULL));
+        ESP_LOGW("[SCROLL]", "high watermark %d",  uxTaskGetStackHighWaterMark(hdl_scroll_task));
 #if CONFIG_USE_TOUCH_BUTTON
 #if !CONFIG_USE_TOUCH_BUILTIN
-        ESP_LOGW("TOUCH", "high watermark %d",  uxTaskGetStackHighWaterMark(hdl_touch_task));
+        ESP_LOGW("[TOUCH]", "high watermark %d",  uxTaskGetStackHighWaterMark(hdl_touch_task));
 #endif
-        ESP_LOGW("BUTTON", "high watermark %d",  uxTaskGetStackHighWaterMark(hdl_button_task));
+        ESP_LOGW("[BUTTON]", "high watermark %d",  uxTaskGetStackHighWaterMark(hdl_button_task));
 #endif
 
         uart_wait_tx_idle_polling((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM);

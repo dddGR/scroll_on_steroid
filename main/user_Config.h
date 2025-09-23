@@ -8,6 +8,12 @@
 #define DEVICE_MANUFACTURER   "DDDGR"
 #define DEVICE_SERIAL         "1234567890"
 
+/**
+ * @note If you are using configurations defined in the config.h file, 
+ * make sure to go to menuconfig and disable the option 
+ * {Use menuconfig to set parameters}. If not, this may result in 
+ * conflicts. 
+ */
 #if !CONFIG_USE_MENU_CONFIG
 #define CONFIG_IDLE_TIME_BEFORE_SLEEP   (10) /* in minutes */
 

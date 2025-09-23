@@ -4,36 +4,23 @@
 #include <inttypes.h>
 
 #include "esp_system.h"
-#include "esp_wifi.h"
 #include "esp_event.h"
-#include "esp_log.h"
 #include "esp_check.h"
 #include "nvs_flash.h"
 #include "esp_bt.h"
-
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
 #include "esp_gatt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
-
-
 #include "esp_hid_gap.h"
 #include "sdkconfig.h"
 
 #include "HID_bluedroid.h"
-#include "hid_Descriptor.h"
 
-static const char *TAG = "HID_DEV";
+static const char *TAG = "[HID_DEV]";
 
 #if CONFIG_BT_BLUEDROID_ENABLED && CONFIG_BT_BLE_42_FEATURES_SUPPORTED
-
-esp_hid_raw_report_map_t ble_report_maps[] = {
-    {
-        .data = scrollDescriptor_hiRes,
-        .len = sizeof(scrollDescriptor_hiRes)
-    }
-};
 
 static void ble_hidd_event_cb(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
 {
@@ -98,7 +85,8 @@ esp_err_t hidDevInit(esp_hidd_dev_t **hid_device, const esp_hid_device_config_t 
     esp_err_t _res;
 
     _res = nvs_flash_init();
-    if (_res == ESP_ERR_NVS_NO_FREE_PAGES || _res == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    if (_res == ESP_ERR_NVS_NO_FREE_PAGES || _res == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
         ESP_RETURN_ON_ERROR(nvs_flash_erase(), TAG, "erase NVS failed");
         _res = nvs_flash_init();
     }
@@ -125,7 +113,5 @@ void sendScroll(esp_hidd_dev_t *hid_device, const char wheel, const char hWheel)
     
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_hidd_dev_input_set(hid_device, 0, REPORT_ID_MOUSE, buffer, sizeof(buffer)));
 }
-
-
 
 #endif // CONFIG_BT_BLUEDROID_ENABLED && CONFIG_BT_BLE_42_FEATURES_SUPPORTED
