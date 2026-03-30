@@ -3,13 +3,13 @@
 
 /** THIS FILE CONTAINS PRIVATE USER CONFIGURATIONS RELATED TO THE PROJECT
  *  THAT SHARED ACROSS THE TRANSLATION UNITS, BUT NOT MEAN FOR USER TO MODIFY */
-#include "sdkconfig.h"
-#include "user_Types.h"
+#include "sdkconfig.h"   // IWYU pragma: export
+#include "user_Types.h"  // IWYU pragma: export
 
 #if CONFIG_FREERTOS_UNICORE
-    #define APP_CORE_ID         (0)
+    #define APP_CORE_ID (0)
 #else
-    #define APP_CORE_ID         (1)
+    #define APP_CORE_ID (1)
 #endif
 
 /* For button touch state */
@@ -25,7 +25,7 @@ typedef enum ButtonPressState {
 typedef enum ScrollSpeedDiv {
     SPEED_HIGH = 1,
     // SPEED_MEDIUM, /* not much different */
-    SPEED_LOW = 4
+    SPEED_LOW  = 4
 } ScrollSpeedDiv_t;
 
 /* For scroll direction */
@@ -35,12 +35,11 @@ typedef enum ScrollDirection {
 } ScrollDirection_t;
 
 /* Bit for event group */
-#define DEVICE_ACTIVE       BIT(0)
-#define DEVICE_IDLE         BIT(1)
-#define BUTTON_PRESSED      BIT(2)
-#define BUTTON_RELEASED     BIT(3)
-#define BLE_CONNECTED       BIT(8)
-#define BLE_DISCONNECTED    BIT(9)
-
+#define DEVICE_ACTIVE    BIT(0)
+#define DEVICE_IDLE      BIT(1)
+#define BUTTON_PRESSED   BIT(2)
+#define BUTTON_RELEASED  BIT(3)
+#define BLE_CONNECTED    BIT(8)
+#define BLE_DISCONNECTED BIT(9)
 
 #endif

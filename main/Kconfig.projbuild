@@ -78,7 +78,7 @@ menu "Scroll-On-Steroid Configuration"
         
         config SHAKE_TO_WAKEUP
             bool "Enable shake to wakeup"
-            depends on SOC_GPIO_SUPPORT_DEEPSLEEP_WAKEUP
+            depends on SOC_GPIO_SUPPORT_HP_PERIPH_PD_SLEEP_WAKEUP
             default y
             help
                 This option enable wakeup device when shake detected

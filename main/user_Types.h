@@ -1,7 +1,7 @@
 #ifndef _USER_TYPES_H_
 #define _USER_TYPES_H_
 
-#include <stdint.h>
+#include <stdint.h>  // IWYU pragma: export
 
 /**  SOME BASIC MACROS TO MAKE LIFE EASIER */
 
@@ -22,7 +22,7 @@
 #endif
 
 /* Map value x from range [a] to range [b] */
-#define MAP(x, a_min, a_max, b_min, b_max)\
+#define MAP(x, a_min, a_max, b_min, b_max)                      \
     (((x - a_min) * (b_max - b_min)) / (a_max - a_min) + b_min)
 
 #ifndef POW2
@@ -38,11 +38,10 @@
 #endif
 
 #ifndef HIGH
-    #define HIGH    (1)
+    #define HIGH (1)
 #endif
 #ifndef LOW
-    #define LOW     (0)
+    #define LOW (0)
 #endif
-
 
 #endif
