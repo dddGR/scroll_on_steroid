@@ -1,5 +1,6 @@
 #include "HID_bluedroid.h"
 #include "driver/gpio.h"
+#include "driver/i2c_master.h"
 #include "driver/uart.h"
 #include "esp_as5600.h"
 #include "esp_check.h"
@@ -123,7 +124,8 @@ static void task_Button(void* pvParameter) {
 #endif  // CONFIG_USE_TOUCH_BUTTON
 
 static esp_err_t init_Hardware(const char* TAG,
-                               as5600_handle_t* p_hdl_encoder,
+                               i2c_master_bus_handle_t* p_i2c_bus_handle,
+                               i2c_master_dev_handle_t* p_i2c_dev_handle,
                                esp_hidd_dev_t** p_hid_dev) {
     ESP_LOGI(TAG, "Initializing BLE.....");
     xEventGroupSetBits(g_xEventGroup, BLE_DISCONNECTED);
@@ -159,20 +161,25 @@ static esp_err_t init_Hardware(const char* TAG,
 
     vTaskDelay(pdMS_TO_TICKS(50));
 
-    i2c_config_t i2c_config = {
-        .mode             = I2C_MODE_MASTER,
-        .sda_io_num       = CONFIG_PIN_SENSOR_SDA,
-        .scl_io_num       = CONFIG_PIN_SENSOR_SCL,
-        .sda_pullup_en    = GPIO_PULLUP_DISABLE,
-        .scl_pullup_en    = GPIO_PULLUP_DISABLE,
-        .master.clk_speed = 400000UL,
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port                     = I2C_NUM_0,
+        .sda_io_num                   = CONFIG_PIN_SENSOR_SDA,
+        .scl_io_num                   = CONFIG_PIN_SENSOR_SCL,
+        .clk_source                   = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt            = 7,
+        .flags.enable_internal_pullup = true,
     };
 
-    p_hdl_encoder->i2c_num        = I2C_NUM_0;
-    p_hdl_encoder->i2c_config     = i2c_config;
-    p_hdl_encoder->device_address = AS5600_DEFAULT_ADDRESS;
+    i2c_device_config_t dev_config = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address  = AS5600_DEFAULT_ADDRESS,
+        .scl_speed_hz    = 100000UL,
+    };
 
-    ESP_RETURN_ON_ERROR(as5600_init(p_hdl_encoder),
+    ESP_RETURN_ON_ERROR(as5600_init(p_i2c_bus_handle,
+                                    &bus_config,
+                                    p_i2c_dev_handle,
+                                    &dev_config),
                         TAG,
                         "failed to init as5600");
 
@@ -217,13 +224,15 @@ static esp_err_t init_Hardware(const char* TAG,
 static void task_MouseScroll(void* pvParameter) {
     const char* TAG = "[SCROLL]";
 
-    uint8_t counter_to_idle = 0;
-    uint16_t prev_angle     = 0;
-    uint16_t curr_angle     = 0;
-    EventBits_t bits;
-    as5600_handle_t hdl_encoder;
-    esp_hidd_dev_t* p_hid_device;
-    ESP_ERROR_CHECK(init_Hardware(TAG, &hdl_encoder, &p_hid_device));
+    static uint8_t counter_to_idle = 0;
+    static uint16_t prev_angle     = 0;
+    static uint16_t curr_angle     = 0;
+    static EventBits_t bits;
+    static i2c_master_bus_handle_t i2c_bus_hdl;
+    static i2c_master_dev_handle_t encoder_hdl;
+    static esp_hidd_dev_t* p_hid_device;
+    ESP_ERROR_CHECK(
+        init_Hardware(TAG, &i2c_bus_hdl, &encoder_hdl, &p_hid_device));
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -259,13 +268,13 @@ static void task_MouseScroll(void* pvParameter) {
                                    portMAX_DELAY);
         if ( bits & DEVICE_IDLE ) {
             ESP_LOGI(TAG, "Active state...");
-            as5600_get_raw_angle(&hdl_encoder, &curr_angle);
+            as5600_get_raw_angle(encoder_hdl, &curr_angle);
             prev_angle = curr_angle;
             xEventGroupClearBits(g_xEventGroup, DEVICE_IDLE);
             xEventGroupSetBits(g_xEventGroup, DEVICE_ACTIVE);
         }
 
-        as5600_get_raw_angle(&hdl_encoder, &curr_angle);
+        as5600_get_raw_angle(encoder_hdl, &curr_angle);
         const int16_t delta_angle = (curr_angle
                                      - prev_angle /*  - curr_angle */);
 
@@ -377,7 +386,7 @@ static void esp_pre_sleep_config(const char* TAG) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(
         esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown(
             BIT(CONFIG_PIN_WAKEUP),
-                                          ESP_GPIO_WAKEUP_GPIO_HIGH));
+            ESP_GPIO_WAKEUP_GPIO_HIGH));
 #endif
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_set_level(CONFIG_PIN_SENSOR_POWER, 0));

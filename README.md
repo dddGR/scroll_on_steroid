@@ -1,17 +1,18 @@
 # Scroll On Steroid
 
-## Overview
-
-This project is a scroll device that emulates mouse scrolling with enhanced smoothness, utilizing resolution multiplier. It connects via Bluetooth Low Energy (BLE) and incorporates a touch sensor for user interaction. Users can easily adjust scrolling speed and direction (horizontal/vertical) through a touch button interface. The device is built on the ESP32-C3/S3 microcontroller and an AS5600 magnetic encoder. This project is developed using the ESP-IDF framework and is entirely written in C.
-
 ## Table of Contents
 
+- [Overview](#overview)
 - [Features](#features)
 - [Hardware Requirements](#hardware-requirements)
 - [Build guide](#build-guide)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Contributing](#contributing)
+
+## Overview
+
+This project is a scroll device that emulates mouse scrolling with enhanced smoothness, utilizing resolution multiplier. It connects via Bluetooth Low Energy (BLE) and incorporates a touch sensor for user interaction. Users can easily adjust scrolling speed and direction (horizontal/vertical) through a touch button interface. The device is built on the ESP32-C3/S3 microcontroller and an AS5600 magnetic encoder. This project is developed using the ESP-IDF framework and is entirely written in C.
 
 ## Features
 
@@ -26,7 +27,7 @@ User can change scrolling speed or direction via touch interface.
 
 - **Easy Assembly**: All components are off-the-shelf parts for straightforward assembly.
 
-- ***Currently, this device only supports Windows.***
+- ***Only tested on Windows/Linux.***
 
 ## Hardware Requirements
 
@@ -103,8 +104,6 @@ The following steps are intended for those who have never used ESP-IDF before. I
    Wait for the flashing process to complete, and you are done.
 
 ## Usage
-
-- ***Right now only support for windows***
 
 - Connect your device via Bluetooth. When prompted for passcode confirmation, simply click OK (or Pair).
 - The device features two built-in scroll modes that can be switched with a double press:
