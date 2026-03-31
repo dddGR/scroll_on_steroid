@@ -278,8 +278,10 @@ static void task_MouseScroll(void* pvParameter) {
         const int16_t delta_angle = (curr_angle
                                      - prev_angle /*  - curr_angle */);
 
-        ESP_LOGD(TAG, "Current angle: %d", curr_angle);
-        ESP_LOGD(TAG, "Angle delta: %d", delta_angle);
+        ESP_LOGD(TAG,
+                 "Current angle: %d -- Angle delta: %d",
+                 curr_angle,
+                 delta_angle);
 
         /**
          * @brief: When the delta is smaller than the set threshold, it is assumed that 
@@ -302,9 +304,8 @@ static void task_MouseScroll(void* pvParameter) {
                                        pdTRUE,
                                        0);
 
-            if ( ~bits & BUTTON_PRESSED
-                 && ++counter_to_idle
-                     > 50 /* about 500ms with 100hz polling rate */ ) {
+            if ( ~bits & BUTTON_PRESSED && ++counter_to_idle > 50 ) {
+                /* about 500ms with 100hz polling rate */
                 ESP_LOGI(TAG, "Entering idle state...");
                 xEventGroupClearBits(g_xEventGroup, DEVICE_ACTIVE);
                 xEventGroupSetBits(g_xEventGroup, DEVICE_IDLE);
@@ -315,12 +316,11 @@ static void task_MouseScroll(void* pvParameter) {
             counter_to_idle = 0;
         }
 
-        if ( abs(delta_angle)
-             < 2048 ) /* ignore when angle loop back from 4095 to 0 (12-bit) */
-        {
-            int8_t scroll_val = MIN(
-                MAX(delta_angle / (int8_t)g_scroll_div, -127),
-                127);
+        /* in normal use case, the `delta_angle` always stay bellow 100,
+         * so a value `128` here to filter out some cases sensor read value
+         * jump up and down randomly (noise maybe).  */
+        if ( abs(delta_angle) < 128 ) {
+            int8_t scroll_val = delta_angle / (int8_t)g_scroll_div;
             switch ( g_scroll_dir ) {
                 default:
                     break;
