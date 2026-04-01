@@ -320,16 +320,14 @@ static void task_MouseScroll(void* pvParameter) {
          * so a value `128` here to filter out some cases sensor read value
          * jump up and down randomly (noise maybe).  */
         if ( abs(delta_angle) < 128 ) {
-            int8_t scroll_val = delta_angle / (int8_t)g_scroll_div;
+            int8_t scroll_val = (int8_t)delta_angle / (int8_t)g_scroll_div;
             switch ( g_scroll_dir ) {
-                default:
-                    break;
-                case SCROLL_VERTICAL:
+                case SCROLL_VERTICAL: {
                     sendScroll(p_hid_device, -scroll_val, 0);
-                    break;
-                case SCROLL_HORIZONTAL:
+                } break;
+                case SCROLL_HORIZONTAL: {
                     sendScroll(p_hid_device, 0, scroll_val);
-                    break;
+                } break;
             }
         }
 

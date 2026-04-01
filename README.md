@@ -6,19 +6,25 @@
 - [Features](#features)
 - [Hardware Requirements](#hardware-requirements)
 - [Build guide](#build-guide)
-- [Installation](#installation)
+- [Firmware build](#firmware-build)
 - [Usage](#usage)
 - [Contributing](#contributing)
 
 ## Overview
 
-This project is a scroll device that emulates mouse scrolling with enhanced smoothness, utilizing resolution multiplier. It connects via Bluetooth Low Energy (BLE) and incorporates a touch sensor for user interaction. Users can easily adjust scrolling speed and direction (horizontal/vertical) through a touch button interface. The device is built on the ESP32-C3/S3 microcontroller and an AS5600 magnetic encoder. This project is developed using the ESP-IDF framework and is entirely written in C.
+This project is a scroll device that emulates mouse scrolling with enhanced smoothness, utilizing resolution multiplier.
+
+It connects via Bluetooth Low Energy (BLE) and incorporates a touch sensor for user interaction. Users can easily adjust scrolling speed and direction (horizontal/vertical) through a touch button interface.
+
+The device is built on the ESP32-C3/S3 microcontroller and an AS5600 magnetic encoder. This project is developed using the ESP-IDF framework and is entirely written in C.
+
+> ***Only tested on Windows/Linux. Not working on Android. Not yet tested on Mac OS or IOS***
 
 ## Features
 
 - **Smooth Scrolling**: Utilizes a resolution multiplier for enhanced scrolling experience.
 
-- **Bluetooth BLE Connectivity**: Wireless connection. (Only work on windows for now)
+- **Bluetooth BLE Connectivity**: Wireless connection.
 
 - **Touch Sensor**: Detects user interactions to eliminate false movement.  
 User can change scrolling speed or direction via touch interface.
@@ -26,8 +32,6 @@ User can change scrolling speed or direction via touch interface.
 - **Long Battery Life**: Built-in 2000mAh battery for extended use.
 
 - **Easy Assembly**: All components are off-the-shelf parts for straightforward assembly.
-
-- ***Only tested on Windows/Linux.***
 
 ## Hardware Requirements
 
@@ -43,37 +47,36 @@ User can change scrolling speed or direction via touch interface.
 
 ## Build guide
 
-The complete build guide contain in this [Document](https://docs.google.com/presentation/d/1pcG5sJjjT5bdXRbsl7uQMGZX0v1NefzA5OYjOddV2WQ)
+The complete build guide contain in this [Document](https://docs.google.com/presentation/d/1pcG5sJjjT5bdXRbsl7uQMGZX0v1NefzA5OYjOddV2WQ).
 
-## Installation
+## Firmware build
 
-For easy installation, a precompiled `firmware.elf` file is provided for direct flashing onto the microcontroller (MCU). However, this file contains only the default configuration and is intended for use with the exact hardware specified in the instruction document. For custom configurations, users will need to modify the source code (either via menuconfig or directly in the `user_config.h` file) and recompile it themselves.
+For convenient, a precompiled `firmware_xx.bin` is provided for direct flashing onto the microcontroller (MCU). However, this file contains only the default configuration and is intended for use with the exact hardware specified in the instruction document. For custom configurations, users will need to modify the config, via menuconfig (recommended) or directly in the `user_config.h` file and recompile it themselves.
 
 ---------------------------------------------------------------------
 The following steps are intended for those who have never used ESP-IDF before. If you are already familiar with ESP-IDF and have existing projects, you can simply take the source files and compile them.
 
 1. **Install the ESP-IDF Framework**
 
-   It is recommended to use Visual Studio Code (VSCode) along with the ESP-IDF extension. Espressif provides detailed documentation on installing and using [ESP-IDF](https://github.com/espressif/vscode-esp-idf-extension/blob/master/README.md).
+   It is recommended to use Visual Studio Code (VSCode) along with the ESP-IDF extension. Espressif provides detailed documentation on  [installing and using ESP-IDF](https://github.com/espressif/vscode-esp-idf-extension/blob/master/README.md).
 
 2. **Try a Test Build (Optional but Recommended)**
 
-    If you are not familiar with ESP-IDF, it is advisable to build and flash an example sketch from the ESP-IDF example library. This will also help ensure that your board is functioning correctly. Espressif has a very detail [guide](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/startproject.html) for this process.  
+   If you are not familiar with ESP-IDF, it is advisable to build and flash an example sketch from the ESP-IDF example library. This will also help ensure that your board is functioning correctly. Espressif has a very detail [guide](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/startproject.html) for this process.  
    > **Note:** I recommend trying to build the `hello_world` example first, as the `blink` example's default configuration may not work for all board variants.
 
 3. **Create Your ESP-IDF Project**
 
-    Download the source code and open it in VSCode (select "Open Folder"). ESP-IDF will notify you if any files are missing; you can ignore this. Open the `ESP-IDF terminal` and type:
+   Git clone the source code and open it in VSCode (select "Open Folder"). ESP-IDF will notify you if any files are missing; you can ignore this. Open the `ESP-IDF terminal` and type:
 
-    ```bash
-    idf.py reconfigure
-    ```
+   ```bash
+   idf.py reconfigure
+   ```
 
-    This command will reconfigure your project folder. If any files are missing or settings have not been applied, this will resolve those issues.
+   This command will reconfigure your project folder. If any files are missing or settings have not been applied, this will resolve those issues.  
+   In fact, whenever I make changes (e.g., editing `CMakeLists` or adding new files or components), I often encounter errors. Usually, cleaning the build and running `reconfigure` again resolves these issues.
 
-    In fact, whenever I make changes (e.g., editing `CMakeLists` or adding new files or components), I often encounter errors. Usually, cleaning the build and running `reconfigure` again resolves these issues.
-
-    > **Note:** You can open the `ESP-IDF terminal` using a shortcut in the bottom bar or by pressing `Ctrl+Shift+P` and typing `Open ESP-IDF terminal`. This terminal is different from the standard VSCode terminal (usually PowerShell) and includes all the necessary commands, making it much easier to use. If you encounter an error stating that a file is not found or a command is unrecognized, you are likely not using the ESP-IDF terminal.
+   > **Note:** You can open the `ESP-IDF terminal` using a shortcut in the bottom bar or by pressing `Ctrl+Shift+P` and typing `Open ESP-IDF terminal`. This terminal is different from the standard VSCode terminal (usually PowerShell) and includes all the necessary commands, making it much easier to use. If you encounter an error stating that a file is not found or a command is unrecognized, you are likely not using the ESP-IDF terminal.
 
 4. **Select Your MCU Target**
 
@@ -83,21 +86,21 @@ The following steps are intended for those who have never used ESP-IDF before. I
 
 5. **Build and Flash the Project**
 
-    If everything is set up correctly, click the build wrench icon labeled `Build Project` or use the command:
+   If everything is set up correctly, click the build wrench icon labeled `Build Project` or use the command:
 
-    ```bash
-    idf.py build
-    ```
+   ```bash
+   idf.py build
+   ```
 
-    If the build is successful, you can now flash the firmware to your board. Connect your board and set the port to the correct one.
+   If the build is successful, you can now flash the firmware to your board. Connect your board and set the port to the correct one.
 
-    > If you have only one board connected, it will display only that one.
+   > If you have only one board connected, it will display only that one.
 
-    Set the flash method to UART (the star icon) and click the flash icon labeled `Flash Device` or use the command:
+   Set the flash method to UART (the star icon) and click the flash icon labeled `Flash Device` or use the command:
 
-    ```bash
-    idf.py flash
-    ```
+   ```bash
+   idf.py flash
+   ```
 
 6. **Complete the Flashing Process**
 
